@@ -32,11 +32,11 @@ namespace BankSystemApp
 
         public override void PrintDetails()
         {
-            Console.WriteLine($"=== ملف العميل ===");
-            Console.WriteLine(GetSummary());
-            Console.WriteLine($"الرقم الوطني: {NationalID}");
-            Console.WriteLine($"رقم الهاتف: {PhoneNumber}");
-            Console.WriteLine($"تاريخ الانضمام: {CreatedAt.ToShortDateString()}");
+            Console.WriteLine("=== Customer Profile ===");
+            Console.WriteLine($"ID: {Id} | Name: {FullName} | Email: {Email}");
+            Console.WriteLine($"National ID: {NationalID}");
+            Console.WriteLine($"Phone: {PhoneNumber}");
+            Console.WriteLine($"Created At: {CreatedAt.ToShortDateString()}");
         }
     }
 }

@@ -8,70 +8,57 @@ namespace BankSystemApp
     {
         static void Main(string[] args)
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
             Console.WriteLine("=============================================");
-            Console.WriteLine("    Bank Enterprise System - OOP Test Run    ");
+            Console.WriteLine("  Bank Enterprise System - Database DAL Test ");
             Console.WriteLine("=============================================\n");
 
             try
             {
-                // 1. Create Customer
-                Customer customer1 = new Customer(
-                    id: 101,
+                CustomerRepository customerRepo = new CustomerRepository();
+
+                Console.WriteLine("--- Testing Insert Customer to Database ---");
+
+                // توليد رقم عشوائي مكون من 10 أرقام بالضبط لتجاوز الـ Validation
+                Random random = new Random();
+                string nationalId10Digits = random.Next(100000000, 999999999).ToString() + random.Next(0, 9).ToString();
+                string timeStamp = DateTime.Now.ToString("HHmmss");
+
+                Customer newCustomer = new Customer(
+                    id: 0,
                     fullName: "Ahmad Ali",
-                    nationalID: "1234567890",
+                    nationalID: nationalId10Digits, // 10 أرقام تماماً
                     phoneNumber: "0791234567",
-                    email: "ahmad@example.com"
+                    email: $"ahmad_{timeStamp}@gmail.com"
                 );
 
-                customer1.PrintDetails();
-                customer1.DisplayRolePermissions();
-                Console.WriteLine();
+                bool isAdded = customerRepo.AddCustomer(newCustomer);
 
-                // 2. Create Bank Account
-                Account acc1 = new Account(
-                    accountId: 5001,
-                    customerId: customer1.Id,
-                    accountType: "Checking",
-                    initialBalance: 250.00m
-                );
-
-                acc1.Deposit(100.00m);
-                acc1.Withdraw(50.00m);
-                Console.WriteLine();
-
-                // 3. Create Employee
-                Employee emp1 = new Employee(
-                    id: 1,
-                    fullName: "Nawar Admin",
-                    username: "admin_nawar",
-                    passwordHash: "securePass123",
-                    role: UserRole.Admin,
-                    phone: "0788888888",
-                    email: "admin@bank.com"
-                );
-
-                emp1.PrintDetails();
-                emp1.DisplayRolePermissions();
-                Console.WriteLine();
-
-                // 4. Test Polymorphism using IPrintable
-                List<IPrintable> printables = new List<IPrintable>
+                if (isAdded)
                 {
-                    customer1,
-                    emp1,
-                    new Transaction(7001, acc1.AccountID, "Deposit", 100.00m, "ATM Cash Deposit")
-                };
-
-                Console.WriteLine("\n--- Polymorphism Output ---");
-                foreach (var item in printables)
+                    Console.WriteLine("[SUCCESS] New customer added successfully to SQL Server!");
+                }
+                else
                 {
-                    item.PrintDetails();
-                    Console.WriteLine();
+                    Console.WriteLine("[FAILED] Failed to insert customer.");
+                }
+
+                Console.WriteLine();
+
+                // قراءة كل العملاء من الـ Database
+                Console.WriteLine("--- Fetching All Customers from Database ---");
+                List<Customer> customerList = customerRepo.GetAllCustomers();
+
+                foreach (var customer in customerList)
+                {
+                    customer.PrintDetails();
+                    Console.WriteLine("---------------------------------------------");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"[ERROR] Connection or Query failed: {ex.Message}");
             }
 
             Console.WriteLine("\nPress any key to exit...");
