@@ -6,56 +6,38 @@ namespace BankSystemApp
 {
     public class Account
     {
-        public int AccountID { get; private set; }
-        public int CustomerID { get; private set; }
-        public string AccountType { get; set; } // Checking or Savings
+        // Properties with public getters and setters
+        public int AccountID { get; set; }
+        public int CustomerID { get; set; }
+        public string AccountType { get; set; } = "Savings";
+        public decimal Balance { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        private decimal _balance;
-        public decimal Balance
+        // 1. Parameterless Constructor (ضروري جداً عشان تزبط الأسطر اللي بالصورة)
+        public Account()
         {
-            get => _balance;
-            private set
-            {
-                if (value < 0)
-                    throw new InvalidOperationException("الرصيد لا يمكن أن يكون بالسالب!");
-                _balance = value;
-            }
         }
 
-        public bool IsActive { get; set; }
-
-        public Account(int accountId, int customerId, string accountType, decimal initialBalance)
+        // 2. Constructor لإنشاء حساب جديد
+        public Account(int customerID, string accountType, decimal initialBalance = 0.00m)
         {
-            AccountID = accountId;
-            CustomerID = customerId;
+            if (accountType != "Savings" && accountType != "Checking")
+            {
+                throw new ArgumentException("Account type must be either 'Savings' or 'Checking'.");
+            }
+
+            if (initialBalance < 0)
+            {
+                throw new ArgumentException("Initial balance cannot be negative.");
+            }
+
+            CustomerID = customerID;
             AccountType = accountType;
             Balance = initialBalance;
             IsActive = true;
-        }
-
-        public void Deposit(decimal amount)
-        {
-            if (amount <= 0)
-                throw new ArgumentException("مبلغ الإيداع يجب أن يكون أكبر من zero!");
-
-            _balance += amount;
-            Console.WriteLine($"تم إيداع {amount} JOD بنجاح. الرصيد الحالي: {_balance} JOD");
-        }
-
-        public bool Withdraw(decimal amount)
-        {
-            if (amount <= 0)
-                throw new ArgumentException("مبلغ السحب يجب أن يكون أكبر من zero!");
-
-            if (amount > _balance)
-            {
-                Console.WriteLine("عذراً، الرصيد غير كافٍ إجراء هذه العملية!");
-                return false;
-            }
-
-            _balance -= amount;
-            Console.WriteLine($"تم سحب {amount} JOD بنجاح. الرصيد المتبقي: {_balance} JOD");
-            return true;
+            CreatedAt = DateTime.Now;
         }
     }
 }
+
