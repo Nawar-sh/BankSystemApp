@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
-using BankSystemApp;
 
 namespace BankSystemApp
 {
     public class CustomerRepository
     {
-        // 1. دالة إضافة عميل جديد لقاعدة البيانات
+        /// <summary>
+        /// Inserts a new customer record into the database
+        /// </summary>
         public bool AddCustomer(Customer customer)
         {
-            string query = @"INSERT INTO Customers (FullName, NationalID, PhoneNumber, Email) 
-                            VALUES (@FullName, @NationalID, @PhoneNumber, @Email)";
+            string query = @"INSERT INTO Customers (FullName, NationalID, PhoneNumber, Email)
+                            VALUES (@FullName, @NationalID, @PhoneNumber, @Email);";
 
             using (SqlConnection conn = DatabaseHelper.GetConnection())
             {
@@ -19,8 +20,8 @@ namespace BankSystemApp
                 {
                     cmd.Parameters.AddWithValue("@FullName", customer.FullName);
                     cmd.Parameters.AddWithValue("@NationalID", customer.NationalID);
-                    cmd.Parameters.AddWithValue("@PhoneNumber", customer.PhoneNumber ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Email", customer.Email ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@PhoneNumber", (object)customer.PhoneNumber ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Email", (object)customer.Email ?? DBNull.Value);
 
                     conn.Open();
                     int rowsAffected = cmd.ExecuteNonQuery();
@@ -29,11 +30,13 @@ namespace BankSystemApp
             }
         }
 
-        // 2. دالة قراءة جميع العملاء من قاعدة البيانات
+        /// <summary>
+        /// Retrieves all customer records from the database
+        /// </summary>
         public List<Customer> GetAllCustomers()
         {
             List<Customer> customers = new List<Customer>();
-            string query = "SELECT CustomerID, FullName, NationalID, PhoneNumber, Email FROM Customers";
+            string query = @"SELECT CustomerID, FullName, NationalID, PhoneNumber, Email, CreatedAt FROM Customers;";
 
             using (SqlConnection conn = DatabaseHelper.GetConnection())
             {
@@ -44,20 +47,19 @@ namespace BankSystemApp
                     {
                         while (reader.Read())
                         {
-                            Customer customer = new Customer(
-                                id: Convert.ToInt32(reader["CustomerID"]),
-                                fullName: reader["FullName"].ToString(),
-                                nationalID: reader["NationalID"].ToString(),
-                                phoneNumber: reader["PhoneNumber"] != DBNull.Value ? reader["PhoneNumber"].ToString() : "",
-                                email: reader["Email"] != DBNull.Value ? reader["Email"].ToString() : ""
-                            );
+                            int id = Convert.ToInt32(reader["CustomerID"]);
+                            string fullName = reader["FullName"].ToString();
+                            string nationalID = reader["NationalID"].ToString();
+                            string phone = reader["PhoneNumber"] != DBNull.Value ? reader["PhoneNumber"].ToString() : "";
+                            string email = reader["Email"] != DBNull.Value ? reader["Email"].ToString() : "";
 
+                            // Standardized Constructor Order: (id, fullName, phoneNumber, email, nationalID)
+                            Customer customer = new Customer(id, fullName, phone, email, nationalID);
                             customers.Add(customer);
                         }
                     }
                 }
             }
-
             return customers;
         }
     }

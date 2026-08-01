@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace BankSystemApp
 {
@@ -13,13 +11,15 @@ namespace BankSystemApp
             get => _nationalID;
             private set
             {
-                if (value.Length != 10)
-                    throw new ArgumentException("الرقم الوطني يجب أن يتكون من 10 أرقام!");
+                if (string.IsNullOrWhiteSpace(value) || value.Length != 10)
+                    throw new ArgumentException("National ID must be exactly 10 digits!");
+
                 _nationalID = value;
             }
         }
 
-        public Customer(int id, string fullName, string nationalID, string phoneNumber, string email)
+        // Standardized Constructor Order: (id, fullName, phoneNumber, email, nationalID)
+        public Customer(int id, string fullName, string phoneNumber, string email, string nationalID)
             : base(id, fullName, phoneNumber, email)
         {
             NationalID = nationalID;
@@ -27,7 +27,7 @@ namespace BankSystemApp
 
         public override void DisplayRolePermissions()
         {
-            Console.WriteLine($"[صلاحيات العميل {FullName}]: عرض الحسابات، طلب تحويل، واستخراج كشف حساب.");
+            Console.WriteLine($"[Customer Permissions for {FullName}]: View Accounts, Request Transfers, and Export Bank Statements.");
         }
 
         public override void PrintDetails()

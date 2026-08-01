@@ -1,7 +1,6 @@
-﻿using System;
+﻿using BankSystem.DAL;
+using System;
 using System.Collections.Generic;
-using BankSystem.DAL;
-using BankSystem;
 
 namespace BankSystemApp
 {
@@ -9,103 +8,113 @@ namespace BankSystemApp
     {
         static void Main(string[] args)
         {
+            // Set console output encoding to UTF-8
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
             Console.WriteLine("=============================================");
-            Console.WriteLine("  Bank Enterprise System - Database DAL Test ");
+            Console.WriteLine("   Bank Enterprise System - Full DAL Test    ");
             Console.WriteLine("=============================================\n");
 
-            try
+            // Initialize Repositories
+            CustomerRepository customerRepo = new CustomerRepository();
+            AccountRepository accountRepo = new AccountRepository();
+            TransactionRepository transactionRepo = new TransactionRepository();
+
+            // -------------------------------------------------------------
+            // 1. Testing Customer Operations
+            // -------------------------------------------------------------
+            Console.WriteLine("--- Testing Insert Customer to Database ---");
+
+            // Generating unique Email and NationalID for testing
+            string uniqueEmail = $"ahmad_{DateTime.Now:HHmmss}@gmail.com";
+            string randomNationalID = new Random().Next(100000000, 999999999).ToString() + "0";
+
+            // Order: (id, fullName, phoneNumber, email, nationalID)
+            Customer newCustomer = new Customer(0, "Ahmad Ali", "0791234567", uniqueEmail, randomNationalID);
+
+            if (customerRepo.AddCustomer(newCustomer))
             {
-                // ==========================================
-                // 1. اختبار الـ CustomerRepository
-                // ==========================================
-                CustomerRepository customerRepo = new CustomerRepository();
-
-                Console.WriteLine("--- Testing Insert Customer to Database ---");
-
-                // توليد رقم عشوائي مكون من 10 أرقام لتجاوز الـ Validation
-                Random random = new Random();
-                string nationalId10Digits = random.Next(100000000, 999999999).ToString() + random.Next(0, 9).ToString();
-                string timeStamp = DateTime.Now.ToString("HHmmss");
-
-                Customer newCustomer = new Customer(
-                    id: 0,
-                    fullName: "Ahmad Ali",
-                    nationalID: nationalId10Digits,
-                    phoneNumber: "0791234567",
-                    email: $"ahmad_{timeStamp}@gmail.com"
-                );
-
-                bool isAdded = customerRepo.AddCustomer(newCustomer);
-
-                if (isAdded)
-                {
-                    Console.WriteLine("[SUCCESS] New customer added successfully to SQL Server!");
-                }
-                else
-                {
-                    Console.WriteLine("[FAILED] Failed to insert customer.");
-                }
-
-                Console.WriteLine();
-
-                // قراءة كل العملاء من الـ Database
-                Console.WriteLine("--- Fetching All Customers from Database ---");
-                List<Customer> customerList = customerRepo.GetAllCustomers();
-
-                foreach (var customer in customerList)
-                {
-                    customer.PrintDetails();
-                    Console.WriteLine("---------------------------------------------");
-                }
-
-                // ==========================================
-                // 2. اختبار الـ AccountRepository (الجديد)
-                // ==========================================
-                Console.WriteLine("\n=============================================");
-                Console.WriteLine("  Testing Account Operations (DAL) ");
-                Console.WriteLine("=============================================\n");
-
-                // استخدام الـ Connection String المركزي من DatabaseHelper بدلاً من كتابته يدوياً
-                AccountRepository accountRepo = new AccountRepository(DatabaseHelper.ConnectionString);
-
-                // استعلام عن الحساب رقم 1001 (الموجود في سكريبت الـ SQL)
-                Console.WriteLine("--- Fetching Account 1001 ---");
-                Account acc = accountRepo.GetAccountById(1001);
-
-                if (acc != null)
-                {
-                    Console.WriteLine($"[FOUND] AccountID: {acc.AccountID} | CustomerID: {acc.CustomerID} | Type: {acc.AccountType} | Current Balance: {acc.Balance} JOD");
-
-                    // تجربة إيداع 100 دينار
-                    Console.WriteLine("\n--- Testing Deposit (Adding 100 JOD) ---");
-                    if (accountRepo.Deposit(1001, 100.00m))
-                    {
-                        acc = accountRepo.GetAccountById(1001);
-                        Console.WriteLine($"[SUCCESS] Deposit complete! New Balance: {acc.Balance} JOD");
-                    }
-
-                    // تجربة سحب 50 دينار
-                    Console.WriteLine("\n--- Testing Withdrawal (Withdrawing 50 JOD) ---");
-                    if (accountRepo.Withdraw(1001, 50.00m))
-                    {
-                        acc = accountRepo.GetAccountById(1001);
-                        Console.WriteLine($"[SUCCESS] Withdrawal complete! New Balance: {acc.Balance} JOD");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("[INFO] Account 1001 not found. Make sure you inserted data in SQL Server.");
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Connection or Query failed: {ex.Message}");
+                Console.WriteLine("[SUCCESS] New customer added successfully to SQL Server!\n");
             }
 
-            Console.WriteLine("\nPress any key to exit...");
+            Console.WriteLine("--- Fetching All Customers from Database ---");
+            List<Customer> customers = customerRepo.GetAllCustomers();
+            foreach (var customer in customers)
+            {
+                Console.WriteLine("=== Customer Profile ===");
+                Console.WriteLine($"Name: {customer.FullName} | Email: {customer.Email}");
+                Console.WriteLine($"National ID: {customer.NationalID}");
+                Console.WriteLine($"Phone: {customer.PhoneNumber}");
+                Console.WriteLine($"Created At: {customer.CreatedAt:d}");
+                Console.WriteLine("---------------------------------------------");
+            }
+            Console.WriteLine();
+
+            // -------------------------------------------------------------
+            // 2. Testing Account Operations
+            // -------------------------------------------------------------
+            Console.WriteLine("=============================================");
+            Console.WriteLine("  Testing Account Operations (Deposit & Withdraw)");
+            Console.WriteLine("=============================================\n");
+
+            int testAccountId = 1001;
+            Console.WriteLine($"--- Fetching Account #{testAccountId} ---");
+            Account acc = accountRepo.GetAccountById(testAccountId);
+
+            if (acc != null)
+            {
+                Console.WriteLine($"[FOUND] AccountID: {acc.AccountID} | CustomerID: {acc.CustomerID} | Type: {acc.AccountType} | Current Balance: {acc.Balance:N2} JOD\n");
+
+                // Testing Deposit (Passing English details explicitly)
+                decimal depositAmount = 100.00m;
+                Console.WriteLine($"--- Testing Deposit (+{depositAmount:N2} JOD) ---");
+                if (accountRepo.Deposit(testAccountId, depositAmount, "Direct Cash Deposit"))
+                {
+                    acc = accountRepo.GetAccountById(testAccountId);
+                    Console.WriteLine($"[SUCCESS] Deposit complete! New Balance: {acc.Balance:N2} JOD\n");
+                }
+
+                // Testing Withdrawal (Passing English details explicitly)
+                decimal withdrawAmount = 50.00m;
+                Console.WriteLine($"--- Testing Withdrawal (-{withdrawAmount:N2} JOD) ---");
+                if (accountRepo.Withdraw(testAccountId, withdrawAmount, "Direct Cash Withdrawal"))
+                {
+                    acc = accountRepo.GetAccountById(testAccountId);
+                    Console.WriteLine($"[SUCCESS] Withdrawal complete! New Balance: {acc.Balance:N2} JOD\n");
+                }
+            }
+
+            // -------------------------------------------------------------
+            // 3. Testing Fund Transfer & Transaction Audit Log
+            // -------------------------------------------------------------
+            Console.WriteLine("=============================================");
+            Console.WriteLine("  Testing Fund Transfer & Transaction Audit ");
+            Console.WriteLine("=============================================\n");
+
+            int sourceAccId = 1001;
+            int destAccId = 1002;
+            decimal transferAmount = 25.00m;
+
+            Console.WriteLine($"--- Transferring {transferAmount:N2} JOD from Acc #{sourceAccId} to Acc #{destAccId} ---");
+            if (transactionRepo.Transfer(sourceAccId, destAccId, transferAmount))
+            {
+                Console.WriteLine("[SUCCESS] Fund transfer completed atomically via SqlTransaction!\n");
+            }
+
+            // Fetching Audit Logs
+            Console.WriteLine($"--- Transaction History Audit Log for Account #{sourceAccId} ---");
+            List<Transaction> transactions = transactionRepo.GetTransactionsByAccountId(sourceAccId);
+
+            foreach (var tx in transactions)
+            {
+                Console.WriteLine("======== TRANSACTION RECEIPT ========");
+                Console.WriteLine($"Transaction ID: {tx.TransactionID} | Account ID: {tx.AccountID}");
+                Console.WriteLine($"Type: {tx.TransactionType} | Amount: {tx.Amount:N2} JOD");
+                Console.WriteLine($"Details: {tx.Details}");
+                Console.WriteLine("=====================================\n");
+            }
+
+            Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
     }

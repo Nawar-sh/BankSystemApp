@@ -9,20 +9,20 @@ namespace BankSystem.DAL
     public class AccountRepository
     {
         private readonly string _connectionString;
+        private readonly TransactionRepository _transactionRepository;
 
-        // 1. Constructor بدون پارامترات يقرأ تلقائياً من DatabaseHelper
         public AccountRepository()
         {
-            _connectionString = DatabaseHelper.ConnectionString; // أو المتغير الداخلي بـ DatabaseHelper
+            _connectionString = DatabaseHelper.ConnectionString;
+            _transactionRepository = new TransactionRepository();
         }
 
-        // 2. Constructor الاختياري القديم
         public AccountRepository(string connectionString)
         {
             _connectionString = connectionString;
+            _transactionRepository = new TransactionRepository();
         }
 
-        // 1. فتح حساب جديد
         public bool CreateAccount(Account account)
         {
             string query = @"INSERT INTO Accounts (CustomerID, AccountType, Balance, IsActive) 
@@ -38,13 +38,11 @@ namespace BankSystem.DAL
                     cmd.Parameters.AddWithValue("@IsActive", account.IsActive);
 
                     conn.Open();
-                    int rowsAffected = cmd.ExecuteNonQuery();
-                    return rowsAffected > 0;
+                    return cmd.ExecuteNonQuery() > 0;
                 }
             }
         }
 
-        // 2. جلب تفاصيل حساب حسب رقم الحساب (AccountID)
         public Account GetAccountById(int accountId)
         {
             string query = "SELECT AccountID, CustomerID, AccountType, Balance, IsActive, CreatedAt FROM Accounts WHERE AccountID = @AccountID";
@@ -76,7 +74,6 @@ namespace BankSystem.DAL
             return null;
         }
 
-        // 3. جلب جميع حسابات عميل معين
         public List<Account> GetAccountsByCustomerId(int customerId)
         {
             List<Account> accounts = new List<Account>();
@@ -109,8 +106,7 @@ namespace BankSystem.DAL
             return accounts;
         }
 
-        // 4. عملية الإيداع (Deposit)
-        public bool Deposit(int accountId, decimal amount)
+        public bool Deposit(int accountId, decimal amount, string details = "Direct Cash Deposit")
         {
             if (amount <= 0)
                 throw new ArgumentException("Deposit amount must be greater than zero.");
@@ -126,18 +122,22 @@ namespace BankSystem.DAL
 
                     conn.Open();
                     int rows = cmd.ExecuteNonQuery();
-                    return rows > 0;
+
+                    if (rows > 0)
+                    {
+                        _transactionRepository.LogTransaction(accountId, "Deposit", amount, details);
+                        return true;
+                    }
+                    return false;
                 }
             }
         }
 
-        // 5. عملية السحب (Withdraw)
-        public bool Withdraw(int accountId, decimal amount)
+        public bool Withdraw(int accountId, decimal amount, string details = "Direct Cash Withdrawal")
         {
             if (amount <= 0)
                 throw new ArgumentException("Withdrawal amount must be greater than zero.");
 
-            // نتحقق أولاً من وجود رصيد كافٍ
             Account account = GetAccountById(accountId);
             if (account == null || account.Balance < amount)
             {
@@ -155,7 +155,13 @@ namespace BankSystem.DAL
 
                     conn.Open();
                     int rows = cmd.ExecuteNonQuery();
-                    return rows > 0;
+
+                    if (rows > 0)
+                    {
+                        _transactionRepository.LogTransaction(accountId, "Withdrawal", amount, details);
+                        return true;
+                    }
+                    return false;
                 }
             }
         }

@@ -1,36 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace BankSystemApp
 {
-    public abstract class Person : IPrintable
+    public abstract class Person
     {
-        private string _fullName = string.Empty;
-        private string _email = string.Empty;
-
         public int Id { get; protected set; }
 
+        private string _fullName = string.Empty;
         public string FullName
         {
             get => _fullName;
             set
             {
                 if (string.IsNullOrWhiteSpace(value))
-                    throw new ArgumentException("الاسم لا يمكن أن يكون فارغاً!");
+                    throw new ArgumentException("Full name cannot be empty.");
+
                 _fullName = value;
             }
         }
 
         public string PhoneNumber { get; set; } = string.Empty;
 
+        private string _email = string.Empty;
         public string Email
         {
             get => _email;
             set
             {
-                if (!value.Contains("@"))
-                    throw new ArgumentException("صيغة البريد الإلكتروني غير صحيحة!");
+                if (!string.IsNullOrWhiteSpace(value) && !value.Contains("@"))
+                    throw new ArgumentException("Invalid email format!");
+
                 _email = value;
             }
         }
@@ -46,13 +45,12 @@ namespace BankSystemApp
             CreatedAt = DateTime.Now;
         }
 
-        // Abstract Methods: تتغير طريقة تطبيقها حسب نوع المستخدِم (Polymorphism)
+        // Methods to be overridden in derived classes (Customer / Employee)
         public abstract void DisplayRolePermissions();
-        public abstract void PrintDetails();
 
-        public virtual string GetSummary()
+        public virtual void PrintDetails()
         {
-            return $"ID: {Id} | Name: {FullName} | Email: {Email}";
+            Console.WriteLine($"ID: {Id} | Name: {FullName} | Email: {Email} | Phone: {PhoneNumber}");
         }
     }
 }
