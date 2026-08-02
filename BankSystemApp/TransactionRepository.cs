@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO; // لتأمين التعامل مع الملفات والنصوص
 using Microsoft.Data.SqlClient;
 
 namespace BankSystemApp
@@ -151,6 +152,63 @@ namespace BankSystemApp
                     throw;
                 }
             }
+        }
+
+        /// <summary>
+        /// Exports account statement transactions to a formatted .txt file
+        /// </summary>
+        public string ExportAccountStatement(int accountId, List<Transaction> transactions)
+        {
+            string fileName = $"Statement_Account_{accountId}_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+
+            using (StreamWriter writer = new StreamWriter(fileName))
+            {
+                writer.WriteLine("=================================================");
+                writer.WriteLine("          BANK ENTERPRISE SYSTEM                ");
+                writer.WriteLine("           OFFICIAL ACCOUNT STATEMENT           ");
+                writer.WriteLine("=================================================");
+                writer.WriteLine($"Account ID  : {accountId}");
+                writer.WriteLine($"Issued Date : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                writer.WriteLine("=================================================");
+                writer.WriteLine(string.Format("{0,-8} | {1,-12} | {2,-10} | {3}", "Tx ID", "Type", "Amount", "Details"));
+                writer.WriteLine("-------------------------------------------------");
+
+                foreach (var tx in transactions)
+                {
+                    writer.WriteLine(string.Format("{0,-8} | {1,-12} | {2,-10:N2} | {3}",
+                        tx.TransactionID, tx.TransactionType, tx.Amount, tx.Details));
+                }
+
+                writer.WriteLine("=================================================");
+                writer.WriteLine("         END OF ACCOUNT STATEMENT               ");
+                writer.WriteLine("=================================================");
+            }
+
+            return fileName;
+        }
+
+        /// <summary>
+        /// Exports account statement transactions to a .csv file (Excel compatible)
+        /// </summary>
+        public string ExportAccountStatementToCsv(int accountId, List<Transaction> transactions)
+        {
+            string fileName = $"Statement_Account_{accountId}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+
+            using (StreamWriter writer = new StreamWriter(fileName, false, System.Text.Encoding.UTF8))
+            {
+                // Write Header Column Names
+                writer.WriteLine("Transaction ID,Transaction Type,Amount (JOD),Details,Issued Date");
+
+                // Write Rows Data
+                foreach (var tx in transactions)
+                {
+                    // Clean commas in details to avoid breaking CSV column alignment
+                    string cleanDetails = tx.Details?.Replace(",", " ") ?? "";
+                    writer.WriteLine($"{tx.TransactionID},{tx.TransactionType},{tx.Amount:F2},{cleanDetails},{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                }
+            }
+
+            return fileName;
         }
     }
 }

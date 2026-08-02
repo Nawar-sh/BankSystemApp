@@ -1,10 +1,9 @@
-﻿using BankSystem;
-using BankSystemApp;
-using Microsoft.Data.SqlClient;
+﻿
 using System;
 using System.Collections.Generic;
+using Microsoft.Data.SqlClient;
 
-namespace BankSystem.DAL
+namespace BankSystemApp
 {
     public class AccountRepository
     {
@@ -162,6 +161,86 @@ namespace BankSystem.DAL
                         return true;
                     }
                     return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Deactivates an account (Soft Delete) after verifying that the balance is 0.
+        /// </summary>
+        public bool DeactivateAccount(int accountId)
+        {
+            Account account = GetAccountById(accountId);
+            if (account == null)
+            {
+                throw new KeyNotFoundException("Account does not exist.");
+            }
+
+            if (!account.IsActive)
+            {
+                throw new InvalidOperationException("Account is already deactivated.");
+            }
+
+            if (account.Balance > 0)
+            {
+                throw new InvalidOperationException($"Cannot close account #{accountId}. Remaining balance is {account.Balance:N2} JOD. Please withdraw or transfer the funds first.");
+            }
+
+            string query = "UPDATE Accounts SET IsActive = 0 WHERE AccountID = @AccountID";
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@AccountID", accountId);
+
+                    conn.Open();
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Fetches system-wide statistical reporting for the main dashboard.
+        /// </summary>
+        public void DisplayBankDashboard()
+        {
+            string query = @"
+                SELECT 
+                    (SELECT COUNT(*) FROM Customers) AS TotalCustomers,
+                    (SELECT COUNT(*) FROM Accounts WHERE IsActive = 1) AS ActiveAccounts,
+                    (SELECT COUNT(*) FROM Accounts WHERE IsActive = 0) AS ClosedAccounts,
+                    (SELECT ISNULL(SUM(Balance), 0) FROM Accounts WHERE IsActive = 1) AS TotalLiquidity,
+                    (SELECT ISNULL(MAX(Balance), 0) FROM Accounts WHERE IsActive = 1) AS HighestBalance;";
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    conn.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            int totalCustomers = Convert.ToInt32(reader["TotalCustomers"]);
+                            int activeAccounts = Convert.ToInt32(reader["ActiveAccounts"]);
+                            int closedAccounts = Convert.ToInt32(reader["ClosedAccounts"]);
+                            decimal totalLiquidity = Convert.ToDecimal(reader["TotalLiquidity"]);
+                            decimal highestBalance = Convert.ToDecimal(reader["HighestBalance"]);
+
+                            Console.Clear();
+                            Console.WriteLine("=============================================");
+                            Console.WriteLine("       BANK ENTERPRISE - DASHBOARD           ");
+                            Console.WriteLine("=============================================");
+                            Console.WriteLine($" Total Customers Registered : {totalCustomers}");
+                            Console.WriteLine($" Total Active Accounts     : {activeAccounts}");
+                            Console.WriteLine($" Total Deactivated Accounts: {closedAccounts}");
+                            Console.WriteLine("---------------------------------------------");
+                            Console.WriteLine($" Total Bank Liquidity      : {totalLiquidity:C2}");
+                            Console.WriteLine($" Highest Account Balance   : {highestBalance:C2}");
+                            Console.WriteLine("=============================================");
+                        }
+                    }
                 }
             }
         }
