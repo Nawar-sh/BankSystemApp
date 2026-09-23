@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="BankingSystem.Application/BankingSystem.Application.csproj" Id="fc9da345-7a1a-4699-9bf8-1b9db305d46d" />
+  <Project Path="BankingSystem.Domain/BankingSystem.Domain.csproj" Id="c03df92c-4994-46e9-929a-b32baef8076b" />
+  <Project Path="BankingSystem.Infrastructure/BankingSystem.Infrastructure.csproj" Id="191fb607-1f03-4f36-b380-9594c9c47b53" />
   <Project Path="BankSystemApp/BankSystemApp.csproj" />
 </Solution>
