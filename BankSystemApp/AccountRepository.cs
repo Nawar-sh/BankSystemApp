@@ -164,6 +164,35 @@ namespace BankSystemApp
                 }
             }
         }
+        public List<Account> GetAllAccounts()
+        {
+            List<Account> accounts = new List<Account>();
+            string query = "SELECT AccountID, CustomerID, AccountType, Balance, IsActive, CreatedAt FROM Accounts";
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    conn.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            accounts.Add(new Account
+                            {
+                                AccountID = Convert.ToInt32(reader["AccountID"]),
+                                CustomerID = Convert.ToInt32(reader["CustomerID"]),
+                                AccountType = reader["AccountType"].ToString(),
+                                Balance = Convert.ToDecimal(reader["Balance"]),
+                                IsActive = Convert.ToBoolean(reader["IsActive"]),
+                                CreatedAt = Convert.ToDateTime(reader["CreatedAt"])
+                            });
+                        }
+                    }
+                }
+            }
+            return accounts;
+        }
 
         /// <summary>
         /// Deactivates an account (Soft Delete) after verifying that the balance is 0.

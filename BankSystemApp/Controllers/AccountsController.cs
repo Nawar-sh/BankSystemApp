@@ -1,74 +1,104 @@
-﻿using BankingSystem.Application.Interfaces;
+﻿using BankSystemApp;
 using Microsoft.AspNetCore.Mvc;
 
-[Route("api/[controller]")]
-[ApiController]
-public class AccountsController : ControllerBase
+namespace BankSystemApp.Controllers
 {
-    private readonly IAccountRepository _accountRepository;
-
-    public AccountsController(IAccountRepository accountRepository)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AccountsController : ControllerBase
     {
-        _accountRepository = accountRepository;
-    }
+        private readonly AccountRepository _accountRepository;
 
-    // 1. GET: جلب حالة أو معلومات الحسابات
-    [HttpGet]
-    public IActionResult GetAllAccounts()
-    {
-        try
+        public AccountsController()
         {
-            // يمكنك تعديلها لاستدعاء الدالة الخاصة بعرض الحسابات من الريبوسيتوري لديك
-            return Ok(new { message = "Banking System API is running successfully!" });
+            _accountRepository = new AccountRepository();
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = ex.Message });
-        }
-    }
 
-    // 2. POST: إنشاء حساب جديد أو إيداع
-    [HttpPost("create")]
-    public IActionResult CreateAccount([FromBody] object accountData)
-    {
-        try
+        // 1. GET: جلب كل الحسابات من قاعدة البيانات
+        [HttpGet]
+        public IActionResult GetAllAccounts()
         {
-            // نقطة النهاية للإضافة
-            return Ok(new { message = "Account endpoint ready for creation.", data = accountData });
+            try
+            {
+                var accounts = _accountRepository.GetAllAccounts();
+                return Ok(accounts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
 
-    // 3. PUT: تحديث أو تعطيل حساب
-    [HttpPut("deactivate/{id}")]
-    public IActionResult DeactivateAccount(int id)
-    {
-        try
+        // 2. GET BY ID: جلب حساب برقم الـ ID
+        [HttpGet("{id}")]
+        public IActionResult GetAccountById(int id)
         {
-            // نقطة النهاية للتعديل/التعطيل
-            return Ok(new { message = $"Account #{id} update/deactivate endpoint reached." });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
+            try
+            {
+                var account = _accountRepository.GetAccountById(id);
+                if (account == null)
+                    return NotFound(new { message = $"الحساب برقم {id} غير موجود." });
 
-    // 4. DELETE: حذف أو إغلاق حساب
-    [HttpDelete("{id}")]
-    public IActionResult DeleteAccount(int id)
-    {
-        try
-        {
-            // نقطة النهاية للحذف
-            return Ok(new { message = $"Account #{id} delete endpoint reached." });
+                return Ok(account);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
-        catch (Exception ex)
+
+        // 3. POST: إنشاء حساب جديد في قاعدة البيانات
+        [HttpPost("create")]
+        public IActionResult CreateAccount([FromBody] Account account)
         {
-            return BadRequest(new { message = ex.Message });
+            try
+            {
+                bool success = _accountRepository.CreateAccount(account);
+                if (success)
+                    return Ok(new { message = "تم إنشاء الحساب بنجاح في قاعدة البيانات!", data = account });
+
+                return BadRequest(new { message = "فشل إنشاء الحساب." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // 4. PUT: إلغاء تفعيل حساب (Soft Delete)
+        [HttpPut("deactivate/{id}")]
+        public IActionResult DeactivateAccount(int id)
+        {
+            try
+            {
+                bool success = _accountRepository.DeactivateAccount(id);
+                if (success)
+                    return Ok(new { message = $"تم إغلاق الحساب #{id} بنجاح." });
+
+                return BadRequest(new { message = "فشل إغلاق الحساب." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // 5. PUT: إيداع مبلغ في الحساب
+        [HttpPut("deposit/{id}")]
+        public IActionResult Deposit(int id, [FromQuery] decimal amount)
+        {
+            try
+            {
+                bool success = _accountRepository.Deposit(id, amount);
+                if (success)
+                    return Ok(new { message = $"تم إيداع مبلغ {amount} بنجاح للحساب #{id}." });
+
+                return BadRequest(new { message = "فشل عملية الإيداع (تأكد أن الحساب نشط)." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }
